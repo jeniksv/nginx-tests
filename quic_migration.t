@@ -139,8 +139,13 @@ $frames = $s->read(all => [{ type => 'PATH_CHALLENGE' }]);
 ($frame) = grep { $_->{type} eq "PATH_CHALLENGE" } @$frames;
 $s->path_response($frame->{data});
 
-$frames = $s->read(all => [{ sid => $sid, fin => 1 }]);
-($frame) = grep { $_->{type} eq "HEADERS" } @$frames;
-is($frame->{headers}{'x-ip'}, '127.0.0.1', 'remote addr on migration');
+my ($hframe) = grep { $_->{type} eq "HEADERS" } @$frames;
+
+unless ($hframe) {
+	$frames = $s->read(all => [{ sid => $sid, fin => 1 }]);
+	($hframe) = grep { $_->{type} eq "HEADERS" } @$frames;
+}
+
+is($hframe->{headers}{'x-ip'}, '127.0.0.1', 'remote addr on migration');
 
 ###############################################################################
