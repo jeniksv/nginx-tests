@@ -2343,22 +2343,23 @@ sub parse_tls_finished {
 
 sub parse_tls_nst {
 	my ($self) = @_;
-	my $buf = $self->{crypto_in}[3][0][2] if $self->{crypto_in}[3][0];
-	return 0 if !$buf;
-	my $off = 0;
-	my $content;
+	return 0 if !$self->{crypto_in}[3][0];
 
-	while ($off < length($buf)) {
-		return 0 if length($buf) < 4;
-		my $type = unpack("C", substr($buf, $off, 1));
+	my $buf = $self->{crypto_in}[3][0][2];
+	my $off = $self->{nst_pos} // 0;
+
+	while ($off + 4 <= length($buf)) {
 		my $len = unpack("n", substr($buf, $off + 2, 2));
-		$content = substr($buf, $off + 4, $len);
-		return 0 if length($content) < $len;
-		$self->{tlsm}{nst} .= substr($buf, $off, 4) . $content;
-		$self->save_session_tickets(substr($buf, $off, 4) . $content);
+		last if length($buf) < $off + 4 + $len;
+
+		my $msg = substr($buf, $off, 4 + $len);
+		$self->{tlsm}{nst} .= $msg;
+		$self->save_session_tickets($msg);
 		$off += 4 + $len;
-		substr($self->{crypto_in}[3][0][2], 0, $off) = '';
 	}
+
+	$self->{nst_pos} = $off;
+	return;
 }
 
 sub build_tls_client_hello {
