@@ -1742,6 +1742,9 @@ sub decrypt_aead {
 		: (0, length($buf) - $offpn);
 	$offpn += $len;
 
+	# too short to sample, such as stateless reset
+	return if length($buf) < $offpn + 4 + 16;
+
 	my $sample = substr($buf, $offpn + 4, 16);
 	my ($ad, $pnl, $pn) = $self->decrypt_ad($buf,
 		$self->{keys}[$level]{r}{hp}, $sample, $offpn, $level);
